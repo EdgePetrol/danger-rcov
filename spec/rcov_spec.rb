@@ -7,8 +7,10 @@ module Danger
     end
 
     describe "with Dangerfile" do
-      let(:current_url) { double('URI::HTTP') }
-      let(:master_url) { double('URI::HTTP') }
+      let(:current_url) { double('URI::HTTPS') }
+      let(:master_url) { double('URI::HTTPS') }
+      let(:coverage_current_url) { double('URI::HTTPS') }
+      let(:coverage_master_url) { double('URI::HTTPS') }
 
       before do
         ENV['CIRCLE_PULL_REQUEST'] = 'danger-rcov/123'
@@ -27,13 +29,13 @@ module Danger
       it "code coverage different" do
         allow(URI).to receive(:parse).with('https://current.dev').and_return(current_url)
         allow(current_url).to receive(:read).and_return(@current_circle_ci)
-        allow(URI).to receive(:parse).with('https://current.circle-artifacts.com/0/coverage/coverage.json?circle-token=circle-token').and_return(current_url)
-        allow(Net::HTTP).to receive(:get_response).with(current_url).and_return(Struct.new(:body).new(@current_coverage))
+        allow(URI).to receive(:parse).with('https://current.circle-artifacts.com/0/coverage/coverage.json?circle-token=circle-token').and_return(coverage_current_url)
+        allow(coverage_current_url).to receive(:read).and_return(@current_coverage)
 
         allow(URI).to receive(:parse).with('https://master.dev').and_return(master_url)
         allow(master_url).to receive(:read).and_return(@master_circle_ci)
-        allow(URI).to receive(:parse).with('https://master.circle-artifacts.com/0/coverage/coverage.json?circle-token=circle-token').and_return(master_url)
-        allow(Net::HTTP).to receive(:get_response).with(master_url).and_return(Struct.new(:body).new(@master_coverage))
+        allow(URI).to receive(:parse).with('https://master.circle-artifacts.com/0/coverage/coverage.json?circle-token=circle-token').and_return(coverage_master_url)
+        allow(coverage_master_url).to receive(:read).and_return(@master_coverage)
 
         expect(@rcov_plugin.report(current_url: 'https://current.dev', master_url: 'https://master.dev')).to eq("```diff\n@@           Coverage Diff            @@\n##           master     #123     +/-  ##\n========================================\n+ Coverage   81.62%   79.16%  -2.46%\n========================================\n  Files          85       85\n+ Lines        1708     1699      -9\n========================================\n+ Misses        314      354     +40\n```")
       end
@@ -41,13 +43,13 @@ module Danger
       it "same code coverage" do
         allow(URI).to receive(:parse).with('https://current.dev').and_return(current_url)
         allow(current_url).to receive(:read).and_return(@current_circle_ci)
-        allow(URI).to receive(:parse).with('https://current.circle-artifacts.com/0/coverage/coverage.json?circle-token=circle-token').and_return(current_url)
-        allow(Net::HTTP).to receive(:get_response).with(current_url).and_return(Struct.new(:body).new(@current_coverage))
+        allow(URI).to receive(:parse).with('https://current.circle-artifacts.com/0/coverage/coverage.json?circle-token=circle-token').and_return(coverage_current_url)
+        allow(coverage_current_url).to receive(:read).and_return(@current_coverage)
 
         allow(URI).to receive(:parse).with('https://master.dev').and_return(master_url)
         allow(master_url).to receive(:read).and_return(@master_circle_ci)
-        allow(URI).to receive(:parse).with('https://master.circle-artifacts.com/0/coverage/coverage.json?circle-token=circle-token').and_return(master_url)
-        allow(Net::HTTP).to receive(:get_response).with(master_url).and_return(Struct.new(:body).new(@current_coverage))
+        allow(URI).to receive(:parse).with('https://master.circle-artifacts.com/0/coverage/coverage.json?circle-token=circle-token').and_return(coverage_master_url)
+        allow(coverage_master_url).to receive(:read).and_return(@current_coverage)
 
         expect(@rcov_plugin.report(current_url: 'https://current.dev', master_url: 'https://master.dev')).to eq("```diff\n@@           Coverage Diff            @@\n##           master     #123     +/-  ##\n========================================\n  Coverage   79.16%   79.16%\n========================================\n  Files          85       85\n  Lines        1699     1699\n========================================\n  Misses        354      354\n```")
       end
