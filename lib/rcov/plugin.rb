@@ -30,11 +30,9 @@ module Danger
 
       return nil if !coverage_url
 
-      uri = URI.parse("#{coverage_url}?circle-token=#{ENV['CIRCLE_TOKEN']}")
+      coverage_url_with_token = "#{coverage_url}?circle-token=#{ENV['CIRCLE_TOKEN']}"
 
-      response = Net::HTTP.get_response(uri)
-
-      JSON.parse(response.body)
+      JSON.parse(URI.parse(coverage_url_with_token).read)
     end
 
     def output_report(results, master_results)
