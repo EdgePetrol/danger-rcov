@@ -1,3 +1,5 @@
+# frozen_string_literal: false
+
 require 'open-uri'
 require 'net/http'
 
@@ -13,8 +15,8 @@ module Danger
 
       @master_report = master_report
 
-      if show_warning && master_report && master_report.dig('metrics', 'covered_percent').round(2)  > current_report.dig('metrics', 'covered_percent').round(2)
-        warn("Code coverage decreased from #{master_report.dig('metrics', 'covered_percent').round(2).to_s}% to #{current_report.dig('metrics', 'covered_percent').round(2)}%")
+      if show_warning && master_report && master_report.dig('metrics', 'covered_percent').round(2) > current_report.dig('metrics', 'covered_percent').round(2)
+        warn("Code coverage decreased from #{master_report.dig('metrics', 'covered_percent').round(2)}% to #{current_report.dig('metrics', 'covered_percent').round(2)}%")
       end
 
       # Output the processed report
@@ -24,11 +26,15 @@ module Danger
     private
 
     def get_report(url:)
-      artifacts = JSON.parse(URI.parse(url).read).map { |a| a['url'] }
+      parsed = URI.parse(url)
+
+      return nil if Net::HTTP.get_response(parsed).code != '200'
+
+      artifacts = JSON.parse(parsed.read).map { |a| a['url'] }
 
       coverage_url = artifacts.find { |artifact| artifact.end_with?('coverage/coverage.json') }
 
-      return nil if !coverage_url
+      return nil unless coverage_url
 
       coverage_url_with_token = "#{coverage_url}?circle-token=#{ENV['CIRCLE_TOKEN']}"
 
@@ -57,26 +63,26 @@ module Danger
       message << new_line('Lines', @current_total_lines, @master_total_lines)
       message << separator_line
       message << new_line('Misses', @current_misses_count, @master_misses_count)
-      message << "```"
+      message << '```'
     end
 
     def separator_line
       "========================================\n"
     end
 
-    def new_line(title, current, master, symbol=nil)
+    def new_line(title, current, master, symbol = nil)
       formatter = symbol ? '%+.2f' : '%+d'
       currrent_formatted = current.to_s + symbol.to_s
       master_formatted = master ? master.to_s + symbol.to_s : '-'
-      prep = (master_formatted != '-' && current - master != 0) ? '+ ' : '  '
+      prep = master_formatted != '-' && current - master != 0 ? '+ ' : '  '
 
       line = data_string(title, master_formatted, currrent_formatted, prep)
-      line << justify_text(sprintf(formatter, current - master) + symbol.to_s, 8) if prep == '+ '
+      line << justify_text(format(formatter, current - master) + symbol.to_s, 8) if prep == '+ '
       line << "\n"
       line
     end
 
-    def justify_text(string, adjust, position='right')
+    def justify_text(string, adjust, position = 'right')
       string.send(position == 'right' ? :rjust : :ljust, adjust)
     end
 

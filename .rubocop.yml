@@ -2,20 +2,13 @@
 
 # If you don't like these settings, just delete this file :)
 
-AllCops:
-  TargetRubyVersion: 2.0
-
 Style/StringLiterals:
-  EnforcedStyle: double_quotes
+  EnforcedStyle: single_quotes
   Enabled: true
 
 # kind_of? is a good way to check a type
 Style/ClassCheck:
   EnforcedStyle: kind_of?
-
-# It's better to be more explicit about the type
-Style/BracesAroundHashParameters:
-  Enabled: false
 
 # specs sometimes have useless assignments, which is fine
 Lint/UselessAssignment:
@@ -23,15 +16,54 @@ Lint/UselessAssignment:
     - '**/spec/**/*'
 
 # We could potentially enable the 2 below:
-Layout/IndentHash:
+Layout/FirstHashElementIndentation:
   Enabled: false
 
-Layout/AlignHash:
+Layout/HashAlignment:
   Enabled: false
 
 # HoundCI doesn't like this rule
 Layout/DotPosition:
   Enabled: false
+
+Layout/EmptyLinesAroundAttributeAccessor:
+  Enabled: true
+
+Layout/SpaceAroundMethodCallOperator:
+  Enabled: true
+
+Lint/DeprecatedOpenSSLConstant:
+  Enabled: true
+
+Lint/MixedRegexpCaptureTypes:
+  Enabled: true
+
+Lint/RaiseException:
+  Enabled: true
+
+Lint/StructNewOverride:
+  Enabled: true
+
+Style/ExponentialNotation:
+  Enabled: true
+
+Style/HashEachMethods:
+  Enabled: true
+
+Style/HashTransformKeys:
+  Enabled: true
+
+Style/HashTransformValues:
+  Enabled: true
+
+Style/RedundantRegexpCharacterClass:
+  Enabled: true
+
+Style/RedundantRegexpEscape:
+  Enabled: true
+
+Style/SlicingWithRange:
+  Enabled: true
 
 # We allow !! as it's an easy way to convert ot boolean
 Style/DoubleNegation:
@@ -76,7 +108,7 @@ Metrics/CyclomaticComplexity:
   Max: 17
 
 # Configuration parameters: AllowURI, URISchemes.
-Metrics/LineLength:
+Layout/LineLength:
   Max: 370
 
 # Configuration parameters: CountKeywordArgs.
@@ -127,10 +159,10 @@ Metrics/BlockLength:
 Style/MixinGrouping:
   Enabled: false
 
-Style/FileName:
+Naming/FileName:
   Enabled: false
 
-Layout/IndentHeredoc:
+Layout/HeredocIndentation:
   Enabled: false
 
 Style/SpecialGlobalVars:

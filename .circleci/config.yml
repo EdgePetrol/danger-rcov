@@ -1,0 +1,53 @@
+version: 2.1
+workflows:
+  test-workflow:
+    jobs:
+      - build:
+          context: EdgePetrolApp
+jobs:
+  build:
+    docker:
+    - image: circleci/ruby:2.7.1
+      environment:
+        RUBYOPT: '-W0 -KU -E utf-8:utf-8'
+
+    steps:
+    - checkout
+    - run:
+        name: Install Cmake
+        command: sudo apt-get install cmake
+    - restore_cache:
+        keys:
+          - edge-bundle-{{ checksum "Gemfile.lock" }}
+          - edge-bundle-
+    - run:
+        name: Bundle Check or Install
+        command: bundle check --path vendor/bundle || bundle install --jobs=4 --retry=3 --path vendor/bundle
+    - save_cache:
+        key: edge-bundle-{{ checksum "Gemfile.lock" }}
+        paths:
+          - vendor/bundle
+    - run:
+        name: Lint code
+        command: bundle exec rubocop
+    - run:
+        name: Execute Rspec Tests
+        command: |
+          mkdir -p /tmp/coverage
+          bundle exec rspec
+    - run:
+        name: Store coverage report
+        command: mv coverage/coverage.json /tmp/coverage/
+    - persist_to_workspace:
+        root: /tmp/coverage
+        paths: .
+    - store_artifacts:
+        path: /tmp/coverage
+        destination: coverage
+    - run:
+        name: Install danger
+        command: bundle list && gem install danger --no-document
+    - run:
+        name: Run Danger
+        command: |-
+          bundle list && bundle exec danger
