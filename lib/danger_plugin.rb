@@ -1,1 +1,3 @@
-require "rcov/plugin"
+# frozen_string_literal: true
+
+require 'rcov/plugin'
