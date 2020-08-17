@@ -3,3 +3,5 @@ pkg
 .idea/
 .yardoc
 coverage/
+vendor/
+Gemfile.lock
