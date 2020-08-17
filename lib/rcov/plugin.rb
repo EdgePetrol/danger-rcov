@@ -26,11 +26,9 @@ module Danger
     private
 
     def get_report(url:)
-      parsed = URI.parse(url)
+      return nil if Net::HTTP.get_response(URI.parse(url)).code != '200'
 
-      return nil if Net::HTTP.get_response(parsed).code != '200'
-
-      artifacts = JSON.parse(parsed.read).map { |a| a['url'] }
+      artifacts = JSON.parse(URI.parse(url).read).map { |a| a['url'] }
 
       coverage_url = artifacts.find { |artifact| artifact.end_with?('coverage/coverage.json') }
 
