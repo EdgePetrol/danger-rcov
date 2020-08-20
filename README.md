@@ -1,3 +1,6 @@
+[![EdgePetrol](https://circleci.com/gh/EdgePetrol/danger-rcov.svg?style=shield)](https://app.circleci.com/pipelines/github/EdgePetrol/danger-rcov)
+![EdgePetrol](https://img.shields.io/endpoint?url=https://edgepetrol.github.io/coverage/danger-rcov/master/shield-coverage.json)
+
 # danger-rcov
 
 This plugin will provide an interface similar to codecov.

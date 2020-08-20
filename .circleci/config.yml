@@ -37,7 +37,9 @@ jobs:
           bundle exec rspec
     - run:
         name: Store coverage report
-        command: mv coverage/coverage.json /tmp/coverage/
+        command: |
+          mv coverage/coverage.json /tmp/coverage/
+          mv coverage/shield-coverage.json /tmp/coverage/
     - persist_to_workspace:
         root: /tmp/coverage
         paths: .
@@ -48,6 +50,19 @@ jobs:
         name: Run Danger
         command: bundle exec danger
     - run:
+        name: Upload coverage to be persistent
+        command: |
+          mkdir -p /tmp/internal
+          cd /tmp/internal
+          git config --global user.email "bot@edgepetrol.com"
+          git config --global user.name "EdgeBot"
+          git clone https://EdgePetrolBot:${DANGER_GITHUB_API_TOKEN}@github.com/EdgePetrol/coverage.git
+          cd coverage
+          mkdir -p ${CIRCLE_PROJECT_REPONAME}/${CIRCLE_BRANCH}
+          mv /tmp/coverage/* /tmp/internal/coverage/${CIRCLE_PROJECT_REPONAME}/${CIRCLE_BRANCH}
+          git add . && git commit -m "Add ${CIRCLE_PROJECT_REPONAME} coverage"
+          git push --set-upstream origin master
+    - run:
         name: Run gem build and push
         command: |-
           if [ "${CIRCLE_BRANCH}" == "master" ]; then
@@ -55,7 +70,7 @@ jobs:
             git config --global user.name "EdgeBot"
             gem install gem-release --no-document
             gem bump --skip-ci
-            git remote set-url --push origin https://EdgePetrolBot:${EDGE_GITHUB_API_TOKEN}@github.com/EdgePetrol/danger-rcov.git
+            git remote set-url --push origin https://EdgePetrolBot:${EDGE_GITHUB_API_TOKEN}@github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git
             git push --set-upstream origin ${CIRCLE_BRANCH}
             GEM_VERSION=$(gem build | awk '/File/ {print $2}')
             curl -X POST https://rubygems.org/api/v1/gems -H "Authorization:${RUBY_GEMS_API_TOKEN}" -H "Content-Type: application/gem" --data-binary "@${GEM_VERSION}"

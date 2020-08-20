@@ -12,11 +12,13 @@ require 'danger'
 
 require 'simplecov'
 require 'simplecov-json'
+require 'simplecov-shield-json'
 
 SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new(
   [
     SimpleCov::Formatter::HTMLFormatter,
-    SimpleCov::Formatter::JSONFormatter
+    SimpleCov::Formatter::JSONFormatter,
+    SimpleCov::Formatter::ShieldJSONFormatter
   ]
 )
 SimpleCov.start do
