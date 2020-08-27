@@ -2,51 +2,39 @@
 
 require 'open-uri'
 require 'net/http'
+require_relative 'circle_ci'
 
 module Danger
   class DangerRcov < Plugin
-    def report(current_url:, master_url:, show_warning: true)
+    def report(branch_name, build_name = 'build', show_warning = true)
+      current_url, master_url = Rcov::CircleCi.get_report_urls_by_branch(branch_name, build_name)
+
       # Get code coverage report as json from url
-      current_report = get_report(url: current_url)
+      @current_report = get_report(url: current_url)
+      @master_report = get_report(url: master_url)
 
-      master_report = get_report(url: master_url)
-
-      @current_report = current_report
-
-      @master_report = master_report
-
-      if show_warning && master_report && master_report.dig('metrics', 'covered_percent').round(2) > current_report.dig('metrics', 'covered_percent').round(2)
-        warn("Code coverage decreased from #{master_report.dig('metrics', 'covered_percent').round(2)}% to #{current_report.dig('metrics', 'covered_percent').round(2)}%")
+      if show_warning && @master_report && @master_report.dig('metrics', 'covered_percent').round(2) > @current_report.dig('metrics', 'covered_percent').round(2)
+        warn("Code coverage decreased from #{@master_report.dig('metrics', 'covered_percent').round(2)}% to #{@current_report.dig('metrics', 'covered_percent').round(2)}%")
       end
 
       # Output the processed report
-      output_report(current_report, master_report)
+      output_report(@current_report, @master_report)
     end
 
     private
 
     def get_report(url:)
-      return nil if Net::HTTP.get_response(URI.parse(url)).code != '200'
-
-      artifacts = JSON.parse(URI.parse(url).read).map { |a| a['url'] }
-
-      coverage_url = artifacts.find { |artifact| artifact.end_with?('coverage/coverage.json') }
-
-      return nil unless coverage_url
-
-      coverage_url_with_token = "#{coverage_url}?circle-token=#{ENV['CIRCLE_TOKEN']}"
-
-      JSON.parse(URI.parse(coverage_url_with_token).read)
+      JSON.parse(URI.parse(url).read) if url
     end
 
     def output_report(results, master_results)
-      @current_covered_percent = results.dig('metrics', 'covered_percent').round(2)
-      @current_files_count = results.dig('files')&.count
-      @current_total_lines = results.dig('metrics', 'total_lines')
-      @current_misses_count = @current_total_lines - results.dig('metrics', 'covered_lines')
+      @current_covered_percent = results&.dig('metrics', 'covered_percent')&.round(2)
+      @current_files_count = results&.dig('files')&.count
+      @current_total_lines = results&.dig('metrics', 'total_lines')
+      @current_misses_count = @current_total_lines - results&.dig('metrics', 'covered_lines')
 
       if master_results
-        @master_covered_percent = master_results.dig('metrics', 'covered_percent').round(2)
+        @master_covered_percent = master_results&.dig('metrics', 'covered_percent')&.round(2)
         @master_files_count = master_results.dig('files')&.count
         @master_total_lines = master_results.dig('metrics', 'total_lines')
         @master_misses_count = @master_total_lines - master_results.dig('metrics', 'covered_lines')

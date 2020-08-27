@@ -29,14 +29,16 @@ module Danger
       end
 
       it 'code coverage different' do
-        allow(URI).to receive(:parse).with('https://current.dev').and_return(current_url)
-        allow(Net::HTTP).to receive_message_chain(:get_response, :code).and_return('200')
-        allow(current_url).to receive(:read).and_return(@current_circle_ci)
+        allow(Rcov::CircleCi).to receive(:get_report_urls_by_branch).and_return(
+          [
+            'https://current.circle-artifacts.com/0/coverage/coverage.json?circle-token=circle-token',
+            'https://master.circle-artifacts.com/0/coverage/coverage.json?circle-token=circle-token'
+          ]
+        )
+
         allow(URI).to receive(:parse).with('https://current.circle-artifacts.com/0/coverage/coverage.json?circle-token=circle-token').and_return(coverage_current_url)
         allow(coverage_current_url).to receive(:read).and_return(@current_coverage)
 
-        allow(URI).to receive(:parse).with('https://master.dev').and_return(master_url)
-        allow(master_url).to receive(:read).and_return(@master_circle_ci)
         allow(URI).to receive(:parse).with('https://master.circle-artifacts.com/0/coverage/coverage.json?circle-token=circle-token').and_return(coverage_master_url)
         allow(coverage_master_url).to receive(:read).and_return(@master_coverage)
 
@@ -54,14 +56,16 @@ module Danger
       end
 
       it 'same code coverage' do
-        allow(URI).to receive(:parse).with('https://current.dev').and_return(current_url)
-        allow(Net::HTTP).to receive_message_chain(:get_response, :code).and_return('200')
-        allow(current_url).to receive(:read).and_return(@current_circle_ci)
+        allow(Rcov::CircleCi).to receive(:get_report_urls_by_branch).and_return(
+          [
+            'https://current.circle-artifacts.com/0/coverage/coverage.json?circle-token=circle-token',
+            'https://master.circle-artifacts.com/0/coverage/coverage.json?circle-token=circle-token'
+          ]
+        )
+
         allow(URI).to receive(:parse).with('https://current.circle-artifacts.com/0/coverage/coverage.json?circle-token=circle-token').and_return(coverage_current_url)
         allow(coverage_current_url).to receive(:read).and_return(@current_coverage)
 
-        allow(URI).to receive(:parse).with('https://master.dev').and_return(master_url)
-        allow(master_url).to receive(:read).and_return(@master_circle_ci)
         allow(URI).to receive(:parse).with('https://master.circle-artifacts.com/0/coverage/coverage.json?circle-token=circle-token').and_return(coverage_master_url)
         allow(coverage_master_url).to receive(:read).and_return(@current_coverage)
 
