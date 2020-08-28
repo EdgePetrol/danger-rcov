@@ -29,7 +29,7 @@ module Danger
       end
 
       it 'code coverage different' do
-        allow(Rcov::CircleCi).to receive(:get_report_urls_by_branch).and_return(
+        allow(CircleCiWrapper).to receive(:report_urls_by_branch).and_return(
           [
             'https://current.circle-artifacts.com/0/coverage/coverage.json?circle-token=circle-token',
             'https://master.circle-artifacts.com/0/coverage/coverage.json?circle-token=circle-token'
@@ -56,7 +56,7 @@ module Danger
       end
 
       it 'same code coverage' do
-        allow(Rcov::CircleCi).to receive(:get_report_urls_by_branch).and_return(
+        allow(CircleCiWrapper).to receive(:report_urls_by_branch).and_return(
           [
             'https://current.circle-artifacts.com/0/coverage/coverage.json?circle-token=circle-token',
             'https://master.circle-artifacts.com/0/coverage/coverage.json?circle-token=circle-token'
