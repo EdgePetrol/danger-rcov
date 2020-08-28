@@ -2,12 +2,12 @@
 
 require 'open-uri'
 require 'net/http'
-require_relative 'circle_ci'
+require 'circle_ci_wrapper'
 
 module Danger
   class DangerRcov < Plugin
     def report(branch_name, build_name = 'build', show_warning = true)
-      current_url, master_url = Rcov::CircleCi.get_report_urls_by_branch(branch_name, build_name)
+      current_url, master_url = CircleCiWrapper.report_urls_by_branch(branch_name, build_name)
 
       # Get code coverage report as json from url
       @current_report = get_report(url: current_url)
