@@ -39,7 +39,7 @@ jobs:
         name: Store coverage report
         command: |
           mv coverage/coverage.json /tmp/coverage/
-          mv coverage/shield-coverage.json /tmp/coverage/
+          mv coverage/badge.svg /tmp/coverage/
     - persist_to_workspace:
         root: /tmp/coverage
         paths: .
