@@ -1,5 +1,5 @@
 [![EdgePetrol](https://circleci.com/gh/EdgePetrol/danger-rcov.svg?style=shield)](https://app.circleci.com/pipelines/github/EdgePetrol/danger-rcov)
-![EdgePetrol](https://img.shields.io/endpoint?url=https://edgepetrol.github.io/coverage/danger-rcov/master/shield-coverage.json)
+![EdgePetrol](https://github.com/EdgePetrol/coverage/blob/master/danger-rcov/master/badge.svg)
 
 # danger-rcov
 
