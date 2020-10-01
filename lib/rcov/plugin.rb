@@ -6,9 +6,14 @@ require 'circle_ci_wrapper'
 
 module Danger
   class DangerRcov < Plugin
-    def report(branch_name, build_name = 'build', show_warning = true)
+    # report will get the urls from circleCi trough circle_ci_wrapper gem
+    def report(branch_name = 'master', build_name = 'build', show_warning = true)
       current_url, master_url = CircleCiWrapper.report_urls_by_branch(branch_name, build_name)
 
+      report_by_urls(current_url, master_url, show_warning)
+    end
+
+    def report_by_urls(current_url, master_url, show_warning = true)
       # Get code coverage report as json from url
       @current_report = get_report(url: current_url)
       @master_report = get_report(url: master_url)
@@ -60,10 +65,10 @@ module Danger
       formatter = symbol ? '%+.2f' : '%+d'
       currrent_formatted = current.to_s + symbol.to_s
       master_formatted = master ? master.to_s + symbol.to_s : '-'
-      prep = master_formatted != '-' && current - master != 0 ? '+ ' : '  '
+      prep = calulate_prep(master_formatted, current - master)
 
       line = data_string(title, master_formatted, currrent_formatted, prep)
-      line << justify_text(format(formatter, current - master) + symbol.to_s, 8) if prep == '+ '
+      line << justify_text(format(formatter, current - master) + symbol.to_s, 8) if prep != '  '
       line << "\n"
       line
     end
@@ -74,6 +79,12 @@ module Danger
 
     def data_string(title, master, current, prep)
       "#{prep}#{justify_text(title, 9, 'left')} #{justify_text(master, 7)}#{justify_text(current, 9)}"
+    end
+
+    def calulate_prep(master_formatted, diff)
+      return '  ' if master_formatted != '-' && diff.zero?
+
+      diff.positive? ? '+ ' : '- '
     end
   end
 end
