@@ -15,12 +15,20 @@ This plugin will provide an interface similar to codecov.
 
 ## Usage
 
-  Inside your Dangerfile:
+  [circleCI] Inside your Dangerfile:
 
   ```
-    markdown rcov.report(
-      current_url: "https://circleci.com/api/v1.1/project/github/#{ENV['CIRCLE_PROJECT_USERNAME']}/#{ENV['CIRCLE_PROJECT_REPONAME']}/#{ENV['CIRCLE_BUILD_NUM']}/artifacts?circle-token=#{ENV['CIRCLE_TOKEN']}",
-      master_url: "https://circleci.com/api/v1.1/project/github/#{ENV['CIRCLE_PROJECT_USERNAME']}/#{ENV['CIRCLE_PROJECT_REPONAME']}/latest/artifacts?circle-token=#{ENV['CIRCLE_TOKEN']}&branch=master",
-      warning: true # this will warn when the code coverage decrease!
-    )
+    # stable branch to check against (default: 'master')
+    # build name (default: 'build')
+    # warning (default: true)
+    markdown rcov.report('master', 'build', true)
+  ```
+
+  [Others] Generic
+
+  ```
+    # current branch url to coverage.json
+    # stable branch url to coverage.json
+    # warning (default: true)
+    markdown rcov.report_by_urls('http://current_branch/coverage.json', 'http://master_branch/coverage.json', true)
   ```
