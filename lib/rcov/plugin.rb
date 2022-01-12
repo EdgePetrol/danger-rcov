@@ -15,6 +15,7 @@ module Danger
       gh_project = ENV["CIRCLE_PROJECT_USERNAME"]
       gh_repo = ENV["CIRCLE_PROJECT_REPONAME"]
       repo_url = "#{api}/#{gh_project}/#{gh_repo}"
+
       circleci_token = ENV["CIRCLE_TOKEN"]
       url = "#{repo_url}/tree/#{branch_name}?circle-token=#{circleci_token}&limit=6&filter=completed"
 
@@ -25,7 +26,11 @@ module Danger
 
       latest_build_num = latest_build(url, build_name)
 
-      puts latest_build_num
+      print "latest_build_num: "
+      p latest_build_num
+
+      current_url = report_url("#{repo_url}/#{ENV["CIRCLE_BUILD_NUM"]}/artifacts?circle-token=#{ENV["CIRCLE_TOKEN"]}")
+      master_url = report_url("#{repo_url}/#{latest_build_num}/artifacts?circle-token=#{ENV["CIRCLE_TOKEN"]}", branch_name)
 
       report_by_urls(current_url, master_url, show_warning)
     end
@@ -58,6 +63,24 @@ module Danger
       JSON.parse(URI.parse(url).read).select do |build|
         build&.[]("build_parameters")&.[]("CIRCLE_JOB") == build_name
       end&.first&.[]("build_num")
+    end
+
+    def report_url(url, branch_name = nil)
+      return nil if Net::HTTP.get_response(URI.parse(url)).code != "200"
+
+      artifacts = JSON.parse(URI.parse(url).read).map { |a| a["url"] }
+
+      print "artifacts: "
+      puts artifacts
+
+      coverage_url = artifacts.find { |artifact| artifact&.end_with?("coverage/coverage.json") }
+
+      print "coverage_url: "
+      puts coverage_url
+
+      return nil unless coverage_url
+
+      "#{coverage_url}?circle-token=#{ENV["CIRCLE_TOKEN"]}&branch=#{branch_name}"
     end
 
     def get_report(url:)
