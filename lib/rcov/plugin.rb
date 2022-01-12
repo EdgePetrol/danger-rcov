@@ -8,17 +8,18 @@ module Danger
   class DangerRcov < Plugin
     # report will get the urls from circleCi trough circle_ci_wrapper gem
     def report(branch_name = 'master', build_name = 'build', show_warning = true)
-      print "Start debugging..."
+      puts "Start debugging..."
 
       current_url, master_url = CircleCiWrapper.report_urls_by_branch(branch_name, build_name)
 
-      print current_url
-      print master_url
+      puts current_url
+      puts master_url
 
       report_by_urls(current_url, master_url, show_warning)
     end
 
     def report_by_urls(current_url, master_url, show_warning = true)
+      puts "Hello"
       # Get code coverage report as json from url
       @current_report = get_report(url: current_url)
       @master_report = get_report(url: master_url)
