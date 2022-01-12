@@ -9,21 +9,28 @@ module Danger
     # report will get the urls from circleCi trough circle_ci_wrapper gem
     def report(branch_name = 'master', build_name = 'build', show_warning = true)
       puts "Start debugging..."
-      puts "Debug log..."
 
       current_url, master_url = CircleCiWrapper.report_urls_by_branch(branch_name, build_name)
 
-      puts current_url
-      puts master_url
+      p current_url
+      p master_url
 
       report_by_urls(current_url, master_url, show_warning)
     end
 
     def report_by_urls(current_url, master_url, show_warning = true)
-      puts "Hello"
+      print "current_url: "
+      p current_url
+      print "master_url: "
+      p master_url
+
       # Get code coverage report as json from url
       @current_report = get_report(url: current_url)
+      print "@current_report: "
+      p @current_report
       @master_report = get_report(url: master_url)
+      print "@master_report: "
+      p @master_report
 
       if show_warning && @master_report && @master_report.dig('metrics', 'covered_percent').round(2) > @current_report.dig('metrics', 'covered_percent').round(2)
         warn("Code coverage decreased from #{@master_report.dig('metrics', 'covered_percent').round(2)}% to #{@current_report.dig('metrics', 'covered_percent').round(2)}%")
@@ -40,9 +47,15 @@ module Danger
     end
 
     def output_report(results, master_results)
+      print "results: "
+      p results
+      print "master_results: "
+      p master_results
       @current_covered_percent = results&.dig('metrics', 'covered_percent')&.round(2)
       @current_files_count = results&.dig('files')&.count
       @current_total_lines = results&.dig('metrics', 'total_lines')
+      print "@current_total_lines: "
+      p @current_total_lines
       @current_misses_count = @current_total_lines - results&.dig('metrics', 'covered_lines')
 
       if master_results
