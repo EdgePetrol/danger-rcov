@@ -9,6 +9,7 @@ module Danger
     # report will get the urls from circleCi trough circle_ci_wrapper gem
     def report(branch_name = 'master', build_name = 'build', show_warning = true)
       puts "Start debugging..."
+      puts "Debug log..."
 
       current_url, master_url = CircleCiWrapper.report_urls_by_branch(branch_name, build_name)
 
