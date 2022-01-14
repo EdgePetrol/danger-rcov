@@ -8,7 +8,6 @@ module Danger
   class DangerRcov < Plugin
     # report is called by client Dangerfiles (f.e.: https://github.com/EdgePetrol/edge-danger/blob/master/Dangerfile#L15)
     def report(pull_request_target_branch_name, build_job_name)
-      p ENV
       target_branch_coverage = find_latest_branch_coverage_report_with_job(pull_request_target_branch_name, build_job_name)
       source_branch_coverage = find_latest_branch_coverage_report_with_job(pull_request_source_branch_name, build_job_name)
 
