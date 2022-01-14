@@ -8,7 +8,7 @@ module Danger
   class DangerRcov < Plugin
     # report will get the urls from circleCi trough circle_ci_wrapper gem
     def report(pull_request_target_branch_name, build_job_name)
-      puts "Start debugging for branch_name = #{branch_name}, build_name = #{build_name}..."
+      puts "Start debugging for pull_request_target_branch_name = #{pull_request_target_branch_name}, build_job_name = #{build_job_name}..."
 
       pull_request_source_branch_name = ENV["CIRCLE_BRANCH"]
 
