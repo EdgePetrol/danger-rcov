@@ -1,6 +1,7 @@
 # frozen_string_literal: false
 
 require "net/http"
+require "open-uri"
 
 module Danger
   class DangerRcov < Plugin
