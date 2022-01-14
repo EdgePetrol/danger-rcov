@@ -8,12 +8,12 @@ module Danger
   class DangerRcov < Plugin
     # report will get the urls from circleCi trough circle_ci_wrapper gem
     def report(pull_request_target_branch_name, build_job_name)
-      puts "Start debugging for branch_name = #{branch_name}, build_name = #{build_name}..., show_warning = #{show_warning}"
+      puts "Start debugging for branch_name = #{branch_name}, build_name = #{build_name}..."
 
       pull_request_source_branch_name = ENV["CIRCLE_BRANCH"]
 
-      target_branch_coverage = get_branch_coverage_report(pull_request_target_branch_name)
-      source_branch_coverage = get_branch_coverage_report(pull_request_source_branch_name)
+      target_branch_coverage = find_latest_branch_coverage_report_with_job(pull_request_target_branch_name, build_job_name)
+      source_branch_coverage = find_latest_branch_coverage_report_with_job(pull_request_source_branch_name, build_job_name)
 
       puts "target_branch_coverage (#{pull_request_target_branch_name}): "
       p target_branch_coverage.dig("metrics")
@@ -29,7 +29,7 @@ module Danger
 
     private
 
-    def get_branch_coverage_report(branch_name)
+    def find_latest_branch_coverage_report_with_job(branch_name, build_job_name)
       gh_project = ENV["CIRCLE_PROJECT_USERNAME"]
       gh_repo = ENV["CIRCLE_PROJECT_REPONAME"]
       circleci_token = ENV["CIRCLE_TOKEN"]
@@ -45,7 +45,7 @@ module Danger
         end
 
         for branch_build in branch_builds
-          if branch_build.dig("workflows", "job_name") == ENV["CIRCLE_JOB"] && branch_build.dig("has_artifacts")
+          if branch_build.dig("workflows", "job_name") == build_job_name && branch_build.dig("has_artifacts")
             build_number = branch_build.dig("build_num")
             build_artifacts_api = "https://circleci.com/api/v1.1/project/github/#{gh_project}/#{gh_repo}/#{build_number}/artifacts?circle-token=#{circleci_token}"
             build_artifacts = JSON.parse(URI.parse(url).read, { max_nesting: 3 })
