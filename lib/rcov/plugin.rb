@@ -7,8 +7,12 @@ require "circle_ci_wrapper"
 module Danger
   class DangerRcov < Plugin
     # report will get the urls from circleCi trough circle_ci_wrapper gem
-    def report(branch_name = "master", build_name = "build", show_warning = true)
+    def report(branch_name = "master", build_name, show_warning)
       puts "Start debugging for branch_name = #{branch_name}, build_name = #{build_name}..."
+      puts "environment variables:"
+      p ENV
+      # get_pull_request_target_branch_coverage_report()
+      # get_pull_request_source_branch_coverage_report(branch_name)
 
       api = "https://circleci.com/api/v1.1/project/github"
 
@@ -36,18 +40,9 @@ module Danger
     end
 
     def report_by_urls(current_url, master_url, show_warning = true)
-      print "current_url: "
-      p current_url
-      print "master_url: "
-      p master_url
-
       # Get code coverage report as json from url
       @current_report = get_report(url: current_url)
-      print "@current_report: "
-      p @current_report
       @master_report = get_report(url: master_url)
-      print "@master_report: "
-      p @master_report
 
       if show_warning && @master_report && @master_report.dig("metrics", "covered_percent").round(2) > @current_report.dig("metrics", "covered_percent").round(2)
         warn("Code coverage decreased from #{@master_report.dig("metrics", "covered_percent").round(2)}% to #{@current_report.dig("metrics", "covered_percent").round(2)}%")
@@ -70,13 +65,7 @@ module Danger
 
       artifacts = JSON.parse(URI.parse(url).read).map { |a| a["url"] }
 
-      print "artifacts: "
-      puts artifacts
-
       coverage_url = artifacts.find { |artifact| artifact&.end_with?("coverage/coverage.json") }
-
-      print "coverage_url: "
-      puts coverage_url
 
       return nil unless coverage_url
 
@@ -88,15 +77,9 @@ module Danger
     end
 
     def output_report(results, master_results)
-      print "results: "
-      p results
-      print "master_results: "
-      p master_results
       @current_covered_percent = results&.dig("metrics", "covered_percent")&.round(2)
       @current_files_count = results&.dig("files")&.count
       @current_total_lines = results&.dig("metrics", "total_lines")
-      print "@current_total_lines: "
-      p @current_total_lines
       @current_misses_count = @current_total_lines - results&.dig("metrics", "covered_lines")
 
       if master_results
