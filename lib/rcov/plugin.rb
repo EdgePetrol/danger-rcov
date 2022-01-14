@@ -28,16 +28,10 @@ module Danger
     # the latest coverage reports of the target branch with the pull request branch, which is
     # possibly generated in the current job run by previous steps.
     def find_latest_branch_coverage_report_with_job(branch_name, build_job_name)
-      github_project = ENV["CIRCLE_PROJECT_USERNAME"]
-      github_repo = ENV["CIRCLE_PROJECT_REPONAME"]
-      circleci_token = ENV["CIRCLE_TOKEN"]
-
-      number_of_build_items_per_page = 30
+      page_limit = 30
       page = 0
       while true
-        # See: https://circleci.com/docs/api/#recent-builds-for-a-single-project
-        branch_builds_api = "https://circleci.com/api/v1.1/project/github/#{github_project}/#{github_repo}/tree/#{branch_name}?circle-token=#{circleci_token}&limit=#{number_of_build_items_per_page}&filter=completed&offset=#{page * number_of_build_items_per_page}"
-        branch_builds = JSON.parse(URI.parse(branch_builds_api).read, { max_nesting: 5 })
+        branch_builds = get_branch_builds(page_limit, page * page_limit)
         if branch_builds.length == 0
           # Reached the end of the builds list, but couldn't find what we wanted yet.
           return nil
@@ -46,9 +40,7 @@ module Danger
         for branch_build in branch_builds
           if branch_build.dig("workflows", "job_name") == build_job_name && branch_build.dig("has_artifacts")
             build_number = branch_build.dig("build_num")
-            # Ref.: https://circleci.com/docs/api/v2/#operation/getJobArtifacts
-            build_artifacts_api = "https://circleci.com/api/v2/project/github/#{github_project}/#{github_repo}/#{build_number}/artifacts"
-            build_artifacts = get_build_artifacts(build_artifacts_api, circleci_token)
+            build_artifacts = get_build_artifacts()
             for build_artifact in build_artifacts
               # We assume the coverage reports file were stored in "coverage/coverage.json" by previous steps.
               if build_artifact.dig("path") == "coverage/coverage.json"
@@ -65,20 +57,42 @@ module Danger
       end
     end
 
-    def get_build_artifacts(api, token)
-      url = URI(api)
+    def get_branch_builds(limit, offset)
+      # See: https://circleci.com/docs/api/#recent-builds-for-a-single-project
+      url = "https://circleci.com/api/v1.1/project/github/#{github_project}/#{github_repo}/tree/#{branch_name}?circle-token=#{circleci_token}&limit=#{limit}&filter=completed&offset=#{offset}"
+      return JSON.parse(get_circleci_url(url), { max_nesting: 5 })
+    end
 
-      http = Net::HTTP.new(url.host, url.port)
+    def get_build_artifacts()
+      # Ref.: https://circleci.com/docs/api/v2/#operation/getJobArtifacts
+      url = "https://circleci.com/api/v2/project/github/#{github_project}/#{github_repo}/#{build_number}/artifacts"
+      return JSON.parse(get_circleci_url(url), { max_nesting: 3 })
+    end
+
+    def get_circleci_url(url)
+      uri = URI(api)
+
+      http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = true
       http.verify_mode = OpenSSL::SSL::VERIFY_NONE
 
-      request = Net::HTTP::Get.new(url)
-      request["Circle-Token"] = token
+      request = Net::HTTP::Get.new(uri)
+      request["Circle-Token"] = circleci_token
 
       response = http.request(request)
-      response_body = response.read_body
+      return response.read_body
+    end
 
-      return JSON.parse(response_body, { max_nesting: 3 })
+    def github_project
+      ENV["CIRCLE_PROJECT_USERNAME"]
+    end
+
+    def github_repo
+      ENV["CIRCLE_PROJECT_REPONAME"]
+    end
+
+    def circleci_token
+      ENV["CIRCLE_TOKEN"]
     end
 
     def print_report_diff(source_branch_coverage, target_branch_coverage)
