@@ -39,6 +39,7 @@ module Danger
       page = 0
       while true
         branch_builds_api = "https://circleci.com/api/v1.1/project/github/#{gh_project}/#{gh_repo}/tree/#{branch_name}?circle-token=#{circleci_token}&limit=#{number_of_build_items_per_page}&filter=completed&offset=#{page * number_of_build_items_per_page}"
+        puts "branch_builds_api: #{branch_builds_api}"
         branch_builds = JSON.parse(URI.parse(url).read, { max_nesting: 5 })
         if branch_builds.length == 0
           return nil
@@ -48,6 +49,7 @@ module Danger
           if branch_build.dig("workflows", "job_name") == build_job_name && branch_build.dig("has_artifacts")
             build_number = branch_build.dig("build_num")
             build_artifacts_api = "https://circleci.com/api/v1.1/project/github/#{gh_project}/#{gh_repo}/#{build_number}/artifacts?circle-token=#{circleci_token}"
+            puts "build_artifacts_api: #{build_artifacts_api}"
             build_artifacts = JSON.parse(URI.parse(url).read, { max_nesting: 3 })
             for build_artifact in build_artifacts
               if build_artifact.dig("path") == "coverage/coverage.json"
