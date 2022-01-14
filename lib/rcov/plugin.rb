@@ -70,7 +70,7 @@ module Danger
     end
 
     def get_circleci_url(url)
-      uri = URI(api)
+      uri = URI(url)
 
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = true
