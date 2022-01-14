@@ -11,7 +11,16 @@ module Danger
       target_branch_coverage = find_latest_branch_coverage_report_with_job(pull_request_target_branch_name, build_job_name)
       source_branch_coverage = find_latest_branch_coverage_report_with_job(pull_request_source_branch_name, build_job_name)
 
-      print_report_diff(source_branch_coverage, target_branch_coverage)
+      print_report_diff({
+        target: {
+          branch_name: pull_request_target_branch_name,
+          coverage: target_branch_coverage,
+        },
+        source: {
+          branch_name: pull_request_source_branch_name,
+          coverage: source_branch_coverage,
+        },
+      })
     end
 
     private
@@ -109,19 +118,23 @@ module Danger
       ENV["CIRCLE_TOKEN"]
     end
 
-    def print_report_diff(source_branch_coverage, target_branch_coverage)
+    def print_report_diff(branch_coverage_reports)
+      source_branch_coverage = branch_coverage_reports[:source][:coverage]
       source_branch_covered_percent = source_branch_coverage&.dig("metrics", "covered_percent")&.round(2)
       source_branch_files_count = source_branch_coverage&.dig("files")&.count
       source_branch_total_lines = source_branch_coverage&.dig("metrics", "total_lines")
       source_branch_misses_count = source_branch_total_lines - source_branch_coverage&.dig("metrics", "covered_lines")
 
+      target_branch_coverage = branch_coverage_reports[:target][:coverage]
       target_branch_covered_percent = target_branch_coverage&.dig("metrics", "covered_percent")&.round(2)
       target_branch_files_count = target_branch_coverage.dig("files")&.count
       target_branch_total_lines = target_branch_coverage.dig("metrics", "total_lines")
       target_branch_misses_count = target_branch_total_lines - target_branch_coverage.dig("metrics", "covered_lines")
 
+      target_branch_name = branch_coverage_reports[:target][:branch_name]
+
       message = "```diff\n@@           Coverage Diff            @@\n"
-      message << "## #{justify_text("master", 16)} #{justify_text("#" + ENV["CIRCLE_PULL_REQUEST"].split("/").last, 8)} #{justify_text("+/-", 7)} #{justify_text("##", 3)}\n"
+      message << "## #{justify_text(target_branch_name, 16)} #{justify_text("#" + ENV["CIRCLE_PULL_REQUEST"].split("/").last, 8)} #{justify_text("+/-", 7)} #{justify_text("##", 3)}\n"
       message << separator_line
       message << new_line("Coverage", source_branch_covered_percent, target_branch_covered_percent, "%")
       message << separator_line
