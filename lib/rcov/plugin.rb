@@ -46,7 +46,7 @@ module Danger
               if build_artifact.dig("path") == "coverage/coverage.json"
                 # See: https://circleci.com/docs/api/#download-an-artifact-file
                 artifact_file_url = build_artifact.dig("url")
-                return JSON.parse(URI.parse("#{artifact_file_url}?circle-token=#{circleci_token}").read)
+                return JSON.parse(get_circleci_url(artifact_file_url))
               end
             end
           end
