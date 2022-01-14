@@ -6,51 +6,53 @@ require "circle_ci_wrapper"
 
 module Danger
   class DangerRcov < Plugin
-    # report will get the urls from circleCi trough circle_ci_wrapper gem
+    # report is called by client Dangerfiles
     def report(pull_request_target_branch_name, build_job_name)
-      puts "Start debugging for pull_request_target_branch_name = #{pull_request_target_branch_name}, build_job_name = #{build_job_name}..."
-
       pull_request_source_branch_name = ENV["CIRCLE_BRANCH"]
 
       target_branch_coverage = find_latest_branch_coverage_report_with_job(pull_request_target_branch_name, build_job_name)
       source_branch_coverage = find_latest_branch_coverage_report_with_job(pull_request_source_branch_name, build_job_name)
 
-      puts "target_branch_coverage (#{pull_request_target_branch_name}): "
-      p target_branch_coverage.dig("metrics")
-      p target_branch_coverage.dig("command_name")
-
-      puts "source_branch_coverage (#{pull_request_source_branch_name}): "
-      p source_branch_coverage.dig("metrics")
-      p source_branch_coverage.dig("command_name")
-
-      # report_by_urls(current_url, master_url, show_warning)
       output_report(source_branch_coverage, target_branch_coverage)
     end
 
     private
 
+    # As the job artifacts of the current build has already been generated and persisted
+    # by previous workflow job steps, we need to iterate through recent builds
+    # in order to find the latest build job for the specified branch.
+    #
+    # We also treat the pull request target branch (e.g., staging) and the source branch
+    # the same, because we assume the coverage report has already been generated for both of them
+    # (i.e., it has been done sometime in the past for the target branch), and we want to compare
+    # the latest coverage reports of the target branch with the pull request branch, which is
+    # possibly generated in the current job run by previous steps.
     def find_latest_branch_coverage_report_with_job(branch_name, build_job_name)
-      gh_project = ENV["CIRCLE_PROJECT_USERNAME"]
-      gh_repo = ENV["CIRCLE_PROJECT_REPONAME"]
+      github_project = ENV["CIRCLE_PROJECT_USERNAME"]
+      github_repo = ENV["CIRCLE_PROJECT_REPONAME"]
       circleci_token = ENV["CIRCLE_TOKEN"]
 
-      # iterate through recent builds to find the most recent completed build with coverage artifacts in the same workflow job
       number_of_build_items_per_page = 30
       page = 0
       while true
-        branch_builds_api = "https://circleci.com/api/v1.1/project/github/#{gh_project}/#{gh_repo}/tree/#{branch_name}?circle-token=#{circleci_token}&limit=#{number_of_build_items_per_page}&filter=completed&offset=#{page * number_of_build_items_per_page}"
+        # See: https://circleci.com/docs/api/#recent-builds-for-a-single-project
+        branch_builds_api = "https://circleci.com/api/v1.1/project/github/#{github_project}/#{github_repo}/tree/#{branch_name}?circle-token=#{circleci_token}&limit=#{number_of_build_items_per_page}&filter=completed&offset=#{page * number_of_build_items_per_page}"
         branch_builds = JSON.parse(URI.parse(branch_builds_api).read, { max_nesting: 5 })
         if branch_builds.length == 0
+          # Reached the end of the builds list, but couldn't find what we wanted yet.
           return nil
         end
 
         for branch_build in branch_builds
-          if branch_build&.dig("workflows", "job_name") == build_job_name && branch_build&.dig("has_artifacts")
-            build_number = branch_build&.dig("build_num")
-            build_artifacts_api = "https://circleci.com/api/v1.1/project/github/#{gh_project}/#{gh_repo}/#{build_number}/artifacts?circle-token=#{circleci_token}"
+          if branch_build.dig("workflows", "job_name") == build_job_name && branch_build.dig("has_artifacts")
+            build_number = branch_build.dig("build_num")
+            # See: https://circleci.com/docs/api/#artifacts-of-a-build
+            build_artifacts_api = "https://circleci.com/api/v1.1/project/github/#{github_project}/#{github_repo}/#{build_number}/artifacts?circle-token=#{circleci_token}"
             build_artifacts = JSON.parse(URI.parse(build_artifacts_api).read, { max_nesting: 3 })
             for build_artifact in build_artifacts
+              # We assume the coverage reports file were stored in "coverage/coverage.json" by previous steps.
               if build_artifact.dig("path") == "coverage/coverage.json"
+                # See: https://circleci.com/docs/api/#download-an-artifact-file
                 artifact_file_url = build_artifact.dig("url")
                 return JSON.parse(URI.parse("#{artifact_file_url}?circle-token=#{circleci_token}").read)
               end
