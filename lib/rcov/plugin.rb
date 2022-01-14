@@ -50,6 +50,9 @@ module Danger
             build_number = branch_build&.dig("build_num")
             p branch_build
             build_artifacts_api = "https://circleci.com/api/v1.1/project/github/#{gh_project}/#{gh_repo}/#{build_number}/artifacts?circle-token=#{circleci_token}"
+            res = Net::HTTP.get_response(URI.parse(build_artifacts_api))
+            puts res.code
+            puts res.body
             puts "build_artifacts_api: #{build_artifacts_api}"
             build_artifacts = JSON.parse(URI.parse(build_artifacts_api).read, { max_nesting: 3 })
             for build_artifact in build_artifacts
