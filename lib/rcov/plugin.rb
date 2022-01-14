@@ -5,14 +5,14 @@ require "open-uri"
 
 module Danger
   class DangerRcov < Plugin
-    # report is called by client Dangerfiles
+    # report is called by client Dangerfiles (f.e.: https://github.com/EdgePetrol/edge-danger/blob/master/Dangerfile#L15)
     def report(pull_request_target_branch_name, build_job_name)
       pull_request_source_branch_name = ENV["CIRCLE_BRANCH"]
 
       target_branch_coverage = find_latest_branch_coverage_report_with_job(pull_request_target_branch_name, build_job_name)
       source_branch_coverage = find_latest_branch_coverage_report_with_job(pull_request_source_branch_name, build_job_name)
 
-      output_report(source_branch_coverage, target_branch_coverage)
+      print_report_diff(source_branch_coverage, target_branch_coverage)
     end
 
     private
@@ -59,11 +59,12 @@ module Danger
           end
         end
 
+        # Maybe in the next builds page?
         page += 1
       end
     end
 
-    def output_report(source_branch_coverage, target_branch_coverage)
+    def print_report_diff(source_branch_coverage, target_branch_coverage)
       source_branch_covered_percent = source_branch_coverage&.dig("metrics", "covered_percent")&.round(2)
       source_branch_files_count = source_branch_coverage&.dig("files")&.count
       source_branch_total_lines = source_branch_coverage&.dig("metrics", "total_lines")
