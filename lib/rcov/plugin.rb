@@ -41,7 +41,7 @@ module Danger
           if branch_build.dig("workflows", "job_name") == build_job_name && branch_build.dig("has_artifacts")
             build_number = branch_build.dig("build_num")
             build_artifacts = get_build_artifacts(build_number)
-            for build_artifact in build_artifacts
+            for build_artifact in build_artifacts.dig("items")
               # We assume the coverage reports file were stored in "coverage/coverage.json" by previous steps.
               if build_artifact.dig("path") == "coverage/coverage.json"
                 # See: https://circleci.com/docs/api/#download-an-artifact-file
