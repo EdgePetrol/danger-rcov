@@ -84,7 +84,7 @@ module Danger
     def get_circleci_url_with_redirect_follow(url, max_redirects = 10)
       raise ArgumentError, "too many HTTP redirects" if max_redirects == 0
 
-      response = get_circleci_url(url, max_redirects - 1)
+      response = get_circleci_url(url)
 
       case response
       when Net::HTTPRedirection
