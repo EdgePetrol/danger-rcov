@@ -1,8 +1,6 @@
 # frozen_string_literal: false
 
-require "open-uri"
 require "net/http"
-require "circle_ci_wrapper"
 
 module Danger
   class DangerRcov < Plugin
