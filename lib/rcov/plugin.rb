@@ -7,98 +7,80 @@ require "circle_ci_wrapper"
 module Danger
   class DangerRcov < Plugin
     # report will get the urls from circleCi trough circle_ci_wrapper gem
-    def report(branch_name, build_name, show_warning)
-      puts "Start debugging for branch_name = #{branch_name}, build_name = #{build_name}..."
-      puts "environment variables:"
-      p ENV
+    def report(default_branch_name, pull_request_target_branch_name, show_warning)
+      puts "Start debugging for branch_name = #{branch_name}, build_name = #{build_name}..., show_warning = #{show_warning}"
 
-      # target_branch_coverage = get_pull_request_target_branch_coverage_report(ENV["CIRCLE_PULL_REQUEST"])
-      # get_pull_request_source_branch_coverage_report(branch_name)
+      pull_request_source_branch_name = ENV["CIRCLE_BRANCH"]
 
-      api = "https://circleci.com/api/v1.1/project/github"
+      target_branch_coverage = get_branch_coverage_report(pull_request_target_branch_name)
+      source_branch_coverage = get_branch_coverage_report(pull_request_source_branch_name)
 
-      gh_project = ENV["CIRCLE_PROJECT_USERNAME"]
-      gh_repo = ENV["CIRCLE_PROJECT_REPONAME"]
-      repo_url = "#{api}/#{gh_project}/#{gh_repo}"
+      puts "target_branch_coverage (#{pull_request_target_branch_name}): "
+      p target_branch_coverage.dig("metrics")
+      p target_branch_coverage.dig("command_name")
 
-      circleci_token = ENV["CIRCLE_TOKEN"]
-      url = "#{repo_url}/tree/#{branch_name}?circle-token=#{circleci_token}&limit=6&filter=completed"
+      puts "source_branch_coverage (#{pull_request_source_branch_name}): "
+      p source_branch_coverage.dig("metrics")
+      p source_branch_coverage.dig("command_name")
 
-      res = Net::HTTP.get_response(URI.parse(url))
-
-      puts res.code
-      puts res.body
-
-      latest_build_num = latest_build(url, build_name)
-
-      print "latest_build_num: "
-      p latest_build_num
-
-      current_url = report_url("#{repo_url}/#{ENV["CIRCLE_BUILD_NUM"]}/artifacts?circle-token=#{ENV["CIRCLE_TOKEN"]}")
-      master_url = report_url("#{repo_url}/#{latest_build_num}/artifacts?circle-token=#{ENV["CIRCLE_TOKEN"]}", branch_name)
-
-      report_by_urls(current_url, master_url, show_warning)
-    end
-
-    def report_by_urls(current_url, master_url, show_warning = true)
-      # Get code coverage report as json from url
-      @current_report = get_report(url: current_url)
-      @master_report = get_report(url: master_url)
-
-      if show_warning && @master_report && @master_report.dig("metrics", "covered_percent").round(2) > @current_report.dig("metrics", "covered_percent").round(2)
-        warn("Code coverage decreased from #{@master_report.dig("metrics", "covered_percent").round(2)}% to #{@current_report.dig("metrics", "covered_percent").round(2)}%")
-      end
-
-      # Output the processed report
-      output_report(@current_report, @master_report)
+      # report_by_urls(current_url, master_url, show_warning)
+      output_report(source_branch_coverage, target_branch_coverage)
     end
 
     private
 
-    def latest_build(url, build_name)
-      JSON.parse(URI.parse(url).read).select do |build|
-        build&.[]("build_parameters")&.[]("CIRCLE_JOB") == build_name
-      end&.first&.[]("build_num")
-    end
+    def get_branch_coverage_report(branch_name)
+      gh_project = ENV["CIRCLE_PROJECT_USERNAME"]
+      gh_repo = ENV["CIRCLE_PROJECT_REPONAME"]
+      circleci_token = ENV["CIRCLE_TOKEN"]
 
-    def report_url(url, branch_name = nil)
-      return nil if Net::HTTP.get_response(URI.parse(url)).code != "200"
+      # iterate through recent builds to find the most recent completed build with coverage artifacts in the same workflow job
+      number_of_build_items_per_page = 30
+      page = 0
+      while true
+        branch_builds_api = "https://circleci.com/api/v1.1/project/github/#{gh_project}/#{gh_repo}/tree/#{branch_name}?circle-token=#{circleci_token}&limit=#{number_of_build_items_per_page}&filter=completed&offset=#{page * number_of_build_items_per_page}"
+        branch_builds = JSON.parse(URI.parse(url).read, { max_nesting: 5 })
+        if branch_builds.length == 0
+          return nil
+        end
 
-      artifacts = JSON.parse(URI.parse(url).read).map { |a| a["url"] }
+        for branch_build in branch_builds
+          if branch_build.dig("workflows", "job_name") == ENV["CIRCLE_JOB"] && branch_build.dig("has_artifacts")
+            build_number = branch_build.dig("build_num")
+            build_artifacts_api = "https://circleci.com/api/v1.1/project/github/#{gh_project}/#{gh_repo}/#{build_number}/artifacts?circle-token=#{circleci_token}"
+            build_artifacts = JSON.parse(URI.parse(url).read, { max_nesting: 3 })
+            for build_artifact in build_artifacts
+              if build_artifact.dig("path") == "coverage/coverage.json"
+                return JSON.parse(URI.parse(build_artifact.dig("url")).read)
+              end
+            end
+          end
+        end
 
-      coverage_url = artifacts.find { |artifact| artifact&.end_with?("coverage/coverage.json") }
-
-      return nil unless coverage_url
-
-      "#{coverage_url}?circle-token=#{ENV["CIRCLE_TOKEN"]}&branch=#{branch_name}"
-    end
-
-    def get_report(url:)
-      JSON.parse(URI.parse(url).read) if url
-    end
-
-    def output_report(results, master_results)
-      @current_covered_percent = results&.dig("metrics", "covered_percent")&.round(2)
-      @current_files_count = results&.dig("files")&.count
-      @current_total_lines = results&.dig("metrics", "total_lines")
-      @current_misses_count = @current_total_lines - results&.dig("metrics", "covered_lines")
-
-      if master_results
-        @master_covered_percent = master_results&.dig("metrics", "covered_percent")&.round(2)
-        @master_files_count = master_results.dig("files")&.count
-        @master_total_lines = master_results.dig("metrics", "total_lines")
-        @master_misses_count = @master_total_lines - master_results.dig("metrics", "covered_lines")
+        page += 1
       end
+    end
+
+    def output_report(source_branch_coverage, target_branch_coverage)
+      source_branch_covered_percent = source_branch_coverage&.dig("metrics", "covered_percent")&.round(2)
+      source_branch_files_count = source_branch_coverage&.dig("files")&.count
+      source_branch_total_lines = source_branch_coverage&.dig("metrics", "total_lines")
+      source_branch_misses_count = source_branch_total_lines - source_branch_coverage&.dig("metrics", "covered_lines")
+
+      target_branch_covered_percent = target_branch_coverage&.dig("metrics", "covered_percent")&.round(2)
+      target_branch_files_count = target_branch_coverage.dig("files")&.count
+      target_branch_total_lines = target_branch_coverage.dig("metrics", "total_lines")
+      target_branch_misses_count = target_branch_total_lines - target_branch_coverage.dig("metrics", "covered_lines")
 
       message = "```diff\n@@           Coverage Diff            @@\n"
       message << "## #{justify_text("master", 16)} #{justify_text("#" + ENV["CIRCLE_PULL_REQUEST"].split("/").last, 8)} #{justify_text("+/-", 7)} #{justify_text("##", 3)}\n"
       message << separator_line
-      message << new_line("Coverage", @current_covered_percent, @master_covered_percent, "%")
+      message << new_line("Coverage", source_branch_covered_percent, target_branch_covered_percent, "%")
       message << separator_line
-      message << new_line("Files", @current_files_count, @master_files_count)
-      message << new_line("Lines", @current_total_lines, @master_total_lines)
+      message << new_line("Files", source_branch_files_count, target_branch_files_count)
+      message << new_line("Lines", source_branch_total_lines, target_branch_total_lines)
       message << separator_line
-      message << new_line("Misses", @current_misses_count, @master_misses_count)
+      message << new_line("Misses", source_branch_misses_count, target_branch_misses_count)
       message << "```"
     end
 
