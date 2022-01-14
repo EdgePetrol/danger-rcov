@@ -106,6 +106,10 @@ module Danger
       ENV["CIRCLE_BRANCH"]
     end
 
+    def pull_request_id
+      "#" + ENV["CIRCLE_PULL_REQUEST"].split("/").last
+    end
+
     def github_project
       ENV["CIRCLE_PROJECT_USERNAME"]
     end
@@ -134,7 +138,7 @@ module Danger
       target_branch_name = branch_coverage_reports[:target][:branch_name]
 
       message = "```diff\n@@           Coverage Diff            @@\n"
-      message << "## #{justify_text(target_branch_name, 16)} #{justify_text("#" + ENV["CIRCLE_PULL_REQUEST"].split("/").last, 8)} #{justify_text("+/-", 7)} #{justify_text("##", 3)}\n"
+      message << "## #{justify_text(target_branch_name, 16)} #{justify_text(pull_request_id, 8)} #{justify_text("+/-", 7)} #{justify_text("##", 3)}\n"
       message << separator_line
       message << new_line("Coverage", source_branch_covered_percent, target_branch_covered_percent, "%")
       message << separator_line
