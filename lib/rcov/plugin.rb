@@ -31,7 +31,7 @@ module Danger
       page_limit = 30
       page = 0
       while true
-        branch_builds = get_branch_builds(page_limit, page * page_limit)
+        branch_builds = get_branch_builds(branch_name, page_limit, page * page_limit)
         if branch_builds.length == 0
           # Reached the end of the builds list, but couldn't find what we wanted yet.
           return nil
@@ -57,7 +57,7 @@ module Danger
       end
     end
 
-    def get_branch_builds(limit, offset)
+    def get_branch_builds(branch_name, limit, offset)
       # See: https://circleci.com/docs/api/#recent-builds-for-a-single-project
       url = "https://circleci.com/api/v1.1/project/github/#{github_project}/#{github_repo}/tree/#{branch_name}?circle-token=#{circleci_token}&limit=#{limit}&filter=completed&offset=#{offset}"
       return JSON.parse(get_circleci_url(url), { max_nesting: 5 })
