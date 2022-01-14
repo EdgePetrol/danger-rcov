@@ -44,9 +44,8 @@ module Danger
             for build_artifact in build_artifacts.dig("items")
               # We assume the coverage reports file were stored in "coverage/coverage.json" by previous steps.
               if build_artifact.dig("path") == "coverage/coverage.json"
-                # See: https://circleci.com/docs/api/#download-an-artifact-file
                 artifact_file_url = build_artifact.dig("url")
-                return JSON.parse(get_circleci_url(artifact_file_url))
+                return JSON.parse(get_circleci_url(artifact_file_url).read_body)
               end
             end
           end
@@ -60,13 +59,13 @@ module Danger
     def get_branch_builds(branch_name, limit, offset)
       # See: https://circleci.com/docs/api/#recent-builds-for-a-single-project
       url = "https://circleci.com/api/v1.1/project/github/#{github_project}/#{github_repo}/tree/#{branch_name}?circle-token=#{circleci_token}&limit=#{limit}&filter=completed&offset=#{offset}"
-      return JSON.parse(get_circleci_url(url), { max_nesting: 5 })
+      JSON.parse(get_circleci_url(url).read_body, { max_nesting: 5 })
     end
 
     def get_build_artifacts(build_number)
       # Ref.: https://circleci.com/docs/api/v2/#operation/getJobArtifacts
       url = "https://circleci.com/api/v2/project/github/#{github_project}/#{github_repo}/#{build_number}/artifacts"
-      return JSON.parse(get_circleci_url(url), { max_nesting: 3 })
+      JSON.parse(get_circleci_url(url).read_body, { max_nesting: 3 })
     end
 
     def get_circleci_url(url)
@@ -79,8 +78,21 @@ module Danger
       request = Net::HTTP::Get.new(uri)
       request["Circle-Token"] = circleci_token
 
-      response = http.request(request)
-      return response.read_body
+      http.request(request)
+    end
+
+    def get_circleci_url_with_redirect_follow(url, max_redirects = 10)
+      raise ArgumentError, "too many HTTP redirects" if max_redirects == 0
+
+      response = get_circleci_url(url, max_redirects - 1)
+
+      case response
+      when Net::HTTPRedirection
+        location = response["location"]
+        get_circleci_url_with_redirect_follow(location, max_redirects - 1)
+      else
+        response
+      end
     end
 
     def github_project
