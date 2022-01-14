@@ -7,11 +7,12 @@ require "circle_ci_wrapper"
 module Danger
   class DangerRcov < Plugin
     # report will get the urls from circleCi trough circle_ci_wrapper gem
-    def report(branch_name = "master", build_name, show_warning)
+    def report(branch_name, build_name, show_warning)
       puts "Start debugging for branch_name = #{branch_name}, build_name = #{build_name}..."
       puts "environment variables:"
       p ENV
-      # get_pull_request_target_branch_coverage_report()
+
+      # target_branch_coverage = get_pull_request_target_branch_coverage_report(ENV["CIRCLE_PULL_REQUEST"])
       # get_pull_request_source_branch_coverage_report(branch_name)
 
       api = "https://circleci.com/api/v1.1/project/github"
