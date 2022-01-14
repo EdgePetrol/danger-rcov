@@ -45,7 +45,7 @@ module Danger
               # We assume the coverage reports file were stored in "coverage/coverage.json" by previous steps.
               if build_artifact.dig("path") == "coverage/coverage.json"
                 artifact_file_url = build_artifact.dig("url")
-                return JSON.parse(get_circleci_url(artifact_file_url).read_body)
+                return JSON.parse(get_circleci_url_with_redirect_follow(artifact_file_url).read_body)
               end
             end
           end
