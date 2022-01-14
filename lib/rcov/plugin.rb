@@ -40,7 +40,7 @@ module Danger
         for branch_build in branch_builds
           if branch_build.dig("workflows", "job_name") == build_job_name && branch_build.dig("has_artifacts")
             build_number = branch_build.dig("build_num")
-            build_artifacts = get_build_artifacts()
+            build_artifacts = get_build_artifacts(build_number)
             for build_artifact in build_artifacts
               # We assume the coverage reports file were stored in "coverage/coverage.json" by previous steps.
               if build_artifact.dig("path") == "coverage/coverage.json"
@@ -63,7 +63,7 @@ module Danger
       return JSON.parse(get_circleci_url(url), { max_nesting: 5 })
     end
 
-    def get_build_artifacts()
+    def get_build_artifacts(build_number)
       # Ref.: https://circleci.com/docs/api/v2/#operation/getJobArtifacts
       url = "https://circleci.com/api/v2/project/github/#{github_project}/#{github_repo}/#{build_number}/artifacts"
       return JSON.parse(get_circleci_url(url), { max_nesting: 3 })
