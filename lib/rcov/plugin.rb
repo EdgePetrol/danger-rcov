@@ -35,10 +35,10 @@ module Danger
     # the latest coverage reports of the target branch with the pull request branch, which is
     # possibly generated in the current job run by previous steps.
     def find_latest_branch_coverage_report_with_job(branch_name, build_job_name)
-      page_limit = 30
+      per_page_build_items = 30
       page = 0
       while true
-        branch_builds = get_branch_builds(branch_name, page_limit, page * page_limit)
+        branch_builds = get_branch_builds(branch_name, per_page_build_items, page * per_page_build_items)
         if branch_builds.length == 0
           # Reached the end of the builds list, but couldn't find what we wanted yet.
           return nil
