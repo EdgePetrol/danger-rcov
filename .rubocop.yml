@@ -1,4 +1,6 @@
 # Defaults can be found here: https://github.com/bbatsov/rubocop/blob/master/config/default.yml
+AllCops:
+  TargetRubyVersion: 2.5
 
 # If you don't like these settings, just delete this file :)
 
