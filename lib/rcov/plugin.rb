@@ -1,8 +1,8 @@
 # frozen_string_literal: false
 
-require "openssl"
-require "net/http"
-require "uri"
+require 'openssl'
+require 'net/http'
+require 'uri'
 
 module Danger
   class DangerRcov < Plugin
@@ -14,12 +14,12 @@ module Danger
       print_report_diff({
         target: {
           branch_name: pull_request_target_branch_name,
-          coverage: target_branch_coverage,
+          coverage: target_branch_coverage
         },
         source: {
           branch_name: pull_request_source_branch_name,
-          coverage: source_branch_coverage,
-        },
+          coverage: source_branch_coverage
+        }
       })
     end
 
@@ -37,23 +37,23 @@ module Danger
     def find_latest_branch_coverage_report_with_job(branch_name, build_job_name)
       per_page_build_items = 30
       page = 0
-      while true
+      loop do
         branch_builds = get_branch_builds(branch_name, per_page_build_items, page * per_page_build_items)
-        if branch_builds.length == 0
+        if branch_builds.empty?
           # Reached the end of the builds list, but couldn't find what we wanted yet.
           return nil
         end
 
-        for branch_build in branch_builds
-          if branch_build.dig("workflows", "job_name") == build_job_name && branch_build.dig("has_artifacts")
-            build_number = branch_build.dig("build_num")
-            build_artifacts = get_build_artifacts(build_number)
-            for build_artifact in build_artifacts.dig("items")
-              # We assume the coverage reports file were stored in "coverage/coverage.json" by previous steps.
-              if build_artifact.dig("path") == "coverage/coverage.json"
-                artifact_file_url = build_artifact.dig("url")
-                return JSON.parse(get_circleci_url_with_redirect_follow(artifact_file_url).read_body)
-              end
+        branch_builds.each do |branch_build|
+          next unless branch_build.dig('workflows', 'job_name') == build_job_name && branch_build['has_artifacts']
+
+          build_number = branch_build['build_num']
+          build_artifacts = get_build_artifacts(build_number)
+          build_artifacts['items'].each do |build_artifact|
+            # We assume the coverage reports file were stored in "coverage/coverage.json" by previous steps.
+            if build_artifact['path'] == 'coverage/coverage.json'
+              artifact_file_url = build_artifact['url']
+              return JSON.parse(get_circleci_url_with_redirect_follow(artifact_file_url).read_body)
             end
           end
         end
@@ -83,19 +83,19 @@ module Danger
       http.verify_mode = OpenSSL::SSL::VERIFY_NONE
 
       request = Net::HTTP::Get.new(uri)
-      request["Circle-Token"] = circleci_token
+      request['Circle-Token'] = circleci_token
 
       http.request(request)
     end
 
     def get_circleci_url_with_redirect_follow(url, max_redirects = 10)
-      raise ArgumentError, "too many HTTP redirects" if max_redirects == 0
+      raise ArgumentError, 'too many HTTP redirects' if max_redirects.zero?
 
       response = get_circleci_url(url)
 
       case response
       when Net::HTTPRedirection
-        location = response["location"]
+        location = response['location']
         get_circleci_url_with_redirect_follow(location, max_redirects - 1)
       else
         response
@@ -103,50 +103,50 @@ module Danger
     end
 
     def pull_request_source_branch_name
-      ENV["CIRCLE_BRANCH"]
+      ENV['CIRCLE_BRANCH']
     end
 
     def pull_request_id
-      "#" + ENV["CIRCLE_PULL_REQUEST"].split("/").last
+      "##{ENV['CIRCLE_PULL_REQUEST'].split('/').last}"
     end
 
     def github_project
-      ENV["CIRCLE_PROJECT_USERNAME"]
+      ENV['CIRCLE_PROJECT_USERNAME']
     end
 
     def github_repo
-      ENV["CIRCLE_PROJECT_REPONAME"]
+      ENV['CIRCLE_PROJECT_REPONAME']
     end
 
     def circleci_token
-      ENV["CIRCLE_TOKEN"]
+      ENV['CIRCLE_TOKEN']
     end
 
     def print_report_diff(branch_coverage_reports)
       source_branch_coverage = branch_coverage_reports[:source][:coverage]
-      source_branch_covered_percent = source_branch_coverage&.dig("metrics", "covered_percent")&.round(2)
-      source_branch_files_count = source_branch_coverage&.dig("files")&.count
-      source_branch_total_lines = source_branch_coverage&.dig("metrics", "total_lines")
-      source_branch_misses_count = source_branch_total_lines - source_branch_coverage&.dig("metrics", "covered_lines")
+      source_branch_covered_percent = source_branch_coverage&.dig('metrics', 'covered_percent')&.round(2)
+      source_branch_files_count = source_branch_coverage&.dig('files')&.count
+      source_branch_total_lines = source_branch_coverage&.dig('metrics', 'total_lines')
+      source_branch_misses_count = source_branch_total_lines - source_branch_coverage&.dig('metrics', 'covered_lines')
 
       target_branch_coverage = branch_coverage_reports[:target][:coverage]
-      target_branch_covered_percent = target_branch_coverage&.dig("metrics", "covered_percent")&.round(2)
-      target_branch_files_count = target_branch_coverage.dig("files")&.count
-      target_branch_total_lines = target_branch_coverage.dig("metrics", "total_lines")
-      target_branch_misses_count = target_branch_total_lines - target_branch_coverage.dig("metrics", "covered_lines")
+      target_branch_covered_percent = target_branch_coverage&.dig('metrics', 'covered_percent')&.round(2)
+      target_branch_files_count = target_branch_coverage['files']&.count
+      target_branch_total_lines = target_branch_coverage.dig('metrics', 'total_lines')
+      target_branch_misses_count = target_branch_total_lines - target_branch_coverage.dig('metrics', 'covered_lines')
 
       target_branch_name = branch_coverage_reports[:target][:branch_name]
 
       message = "```diff\n@@           Coverage Diff            @@\n"
-      message << "## #{justify_text(target_branch_name, 16)} #{justify_text(pull_request_id, 8)} #{justify_text("+/-", 7)} #{justify_text("##", 3)}\n"
+      message << "## #{justify_text(target_branch_name, 16)} #{justify_text(pull_request_id, 8)} #{justify_text('+/-', 7)} #{justify_text('##', 3)}\n"
       message << separator_line
-      message << new_line("Coverage", source_branch_covered_percent, target_branch_covered_percent, "%")
+      message << new_line('Coverage', source_branch_covered_percent, target_branch_covered_percent, '%')
       message << separator_line
-      message << new_line("Files", source_branch_files_count, target_branch_files_count)
-      message << new_line("Lines", source_branch_total_lines, target_branch_total_lines)
+      message << new_line('Files', source_branch_files_count, target_branch_files_count)
+      message << new_line('Lines', source_branch_total_lines, target_branch_total_lines)
       message << separator_line
-      message << new_line("Misses", source_branch_misses_count, target_branch_misses_count)
-      message << "```"
+      message << new_line('Misses', source_branch_misses_count, target_branch_misses_count)
+      message << '```'
     end
 
     def separator_line
@@ -154,29 +154,29 @@ module Danger
     end
 
     def new_line(title, current, master, symbol = nil)
-      formatter = symbol ? "%+.2f" : "%+d"
+      formatter = symbol ? '%+.2f' : '%+d'
       currrent_formatted = current.to_s + symbol.to_s
-      master_formatted = master ? master.to_s + symbol.to_s : "-"
+      master_formatted = master ? master.to_s + symbol.to_s : '-'
       prep = calulate_prep(master_formatted, current - master)
 
       line = data_string(title, master_formatted, currrent_formatted, prep)
-      line << justify_text(format(formatter, current - master) + symbol.to_s, 8) if prep != "  "
+      line << justify_text(format(formatter, current - master) + symbol.to_s, 8) if prep != '  '
       line << "\n"
       line
     end
 
-    def justify_text(string, adjust, position = "right")
-      string.send(position == "right" ? :rjust : :ljust, adjust)
+    def justify_text(string, adjust, position = 'right')
+      string.send(position == 'right' ? :rjust : :ljust, adjust)
     end
 
     def data_string(title, master, current, prep)
-      "#{prep}#{justify_text(title, 9, "left")} #{justify_text(master, 7)}#{justify_text(current, 9)}"
+      "#{prep}#{justify_text(title, 9, 'left')} #{justify_text(master, 7)}#{justify_text(current, 9)}"
     end
 
     def calulate_prep(master_formatted, diff)
-      return "  " if master_formatted != "-" && diff.zero?
+      return '  ' if master_formatted != '-' && diff.zero?
 
-      diff.positive? ? "+ " : "- "
+      diff.positive? ? '+ ' : '- '
     end
   end
 end

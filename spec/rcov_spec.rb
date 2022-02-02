@@ -21,11 +21,11 @@ module Danger
         @dangerfile = testing_dangerfile
         @rcov_plugin = @dangerfile.rcov
 
-        @current_circle_ci = File.read(File.dirname(__FILE__) + '/support/fixtures/current_circle_ci.json')
-        @master_circle_ci = File.read(File.dirname(__FILE__) + '/support/fixtures/master_circle_ci.json')
+        @current_circle_ci = File.read("#{File.dirname(__FILE__)}/support/fixtures/current_circle_ci.json")
+        @master_circle_ci = File.read("#{File.dirname(__FILE__)}/support/fixtures/master_circle_ci.json")
 
-        @current_coverage = File.read(File.dirname(__FILE__) + '/support/fixtures/current_coverage.json')
-        @master_coverage = File.read(File.dirname(__FILE__) + '/support/fixtures/master_coverage.json')
+        @current_coverage = File.read("#{File.dirname(__FILE__)}/support/fixtures/current_coverage.json")
+        @master_coverage = File.read("#{File.dirname(__FILE__)}/support/fixtures/master_coverage.json")
       end
 
       it 'code coverage different' do
