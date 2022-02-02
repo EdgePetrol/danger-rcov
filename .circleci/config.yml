@@ -7,71 +7,73 @@ workflows:
 jobs:
   build:
     docker:
-    - image: circleci/ruby:2.7.1
-      environment:
-        RUBYOPT: '-W0 -KU -E utf-8:utf-8'
+      - image: circleci/ruby:2.7.1
+        environment:
+          RUBYOPT: "-W0 -KU -E utf-8:utf-8"
 
     steps:
-    - checkout
-    - run:
-        name: Install Cmake
-        command: sudo apt-get install cmake
-    - restore_cache:
-        keys:
-          - edge-bundle-{{ checksum "Gemfile.lock" }}
-          - edge-bundle-
-    - run:
-        name: Bundle Check or Install
-        command: bundle check --path vendor/bundle || bundle install --jobs=4 --retry=3 --path vendor/bundle
-    - save_cache:
-        key: edge-bundle-{{ checksum "Gemfile.lock" }}
-        paths:
-          - vendor/bundle
-    - run:
-        name: Lint code
-        command: bundle exec rubocop
-    - run:
-        name: Execute Rspec Tests
-        command: |
-          mkdir -p /tmp/coverage
-          bundle exec rspec
-    - run:
-        name: Store coverage report
-        command: |
-          mv coverage/coverage.json /tmp/coverage/
-          mv coverage/badge.svg /tmp/coverage/
-    - persist_to_workspace:
-        root: /tmp/coverage
-        paths: .
-    - store_artifacts:
-        path: /tmp/coverage
-        destination: coverage
-    - run:
-        name: Run Danger
-        command: bundle exec danger
-    - run:
-        name: Upload coverage to be persistent
-        command: |
-          mkdir -p /tmp/internal
-          cd /tmp/internal
-          git config --global user.email "bot@edgepetrol.com"
-          git config --global user.name "EdgeBot"
-          git clone https://EdgePetrolBot:${DANGER_GITHUB_API_TOKEN}@github.com/EdgePetrol/coverage.git
-          cd coverage
-          mkdir -p ${CIRCLE_PROJECT_REPONAME}/${CIRCLE_BRANCH}
-          mv /tmp/coverage/* /tmp/internal/coverage/${CIRCLE_PROJECT_REPONAME}/${CIRCLE_BRANCH}
-          git add . && git commit -m "Add ${CIRCLE_PROJECT_REPONAME} coverage"
-          git push --set-upstream origin master
-    - run:
-        name: Run gem build and push
-        command: |-
-          if [ "${CIRCLE_BRANCH}" == "master" ]; then
+      - checkout
+      - run:
+          name: Install Cmake
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y cmake
+      - restore_cache:
+          keys:
+            - edge-bundle-{{ checksum "Gemfile.lock" }}
+            - edge-bundle-
+      - run:
+          name: Bundle Check or Install
+          command: bundle check --path vendor/bundle || bundle install --jobs=4 --retry=3 --path vendor/bundle
+      - save_cache:
+          key: edge-bundle-{{ checksum "Gemfile.lock" }}
+          paths:
+            - vendor/bundle
+      - run:
+          name: Lint code
+          command: bundle exec rubocop
+      - run:
+          name: Execute Rspec Tests
+          command: |
+            mkdir -p /tmp/coverage
+            bundle exec rspec
+      - run:
+          name: Store coverage report
+          command: |
+            mv coverage/coverage.json /tmp/coverage/
+            mv coverage/badge.svg /tmp/coverage/
+      - persist_to_workspace:
+          root: /tmp/coverage
+          paths: .
+      - store_artifacts:
+          path: /tmp/coverage
+          destination: coverage
+      - run:
+          name: Run Danger
+          command: bundle exec danger
+      - run:
+          name: Upload coverage to be persistent
+          command: |
+            mkdir -p /tmp/internal
+            cd /tmp/internal
             git config --global user.email "bot@edgepetrol.com"
             git config --global user.name "EdgeBot"
-            gem install gem-release --no-document
-            gem bump --skip-ci
-            git remote set-url --push origin https://EdgePetrolBot:${EDGE_GITHUB_API_TOKEN}@github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git
-            git push --set-upstream origin ${CIRCLE_BRANCH}
-            GEM_VERSION=$(gem build | awk '/File/ {print $2}')
-            curl -X POST https://rubygems.org/api/v1/gems -H "Authorization:${RUBY_GEMS_API_TOKEN}" -H "Content-Type: application/gem" --data-binary "@${GEM_VERSION}"
-          fi
+            git clone https://EdgePetrolBot:${DANGER_GITHUB_API_TOKEN}@github.com/EdgePetrol/coverage.git
+            cd coverage
+            mkdir -p ${CIRCLE_PROJECT_REPONAME}/${CIRCLE_BRANCH}
+            mv /tmp/coverage/* /tmp/internal/coverage/${CIRCLE_PROJECT_REPONAME}/${CIRCLE_BRANCH}
+            git add . && git commit -m "Add ${CIRCLE_PROJECT_REPONAME} coverage"
+            git push --set-upstream origin master
+      - run:
+          name: Run gem build and push
+          command: |-
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              git config --global user.email "bot@edgepetrol.com"
+              git config --global user.name "EdgeBot"
+              gem install gem-release --no-document
+              gem bump --skip-ci
+              git remote set-url --push origin https://EdgePetrolBot:${EDGE_GITHUB_API_TOKEN}@github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git
+              git push --set-upstream origin ${CIRCLE_BRANCH}
+              GEM_VERSION=$(gem build | awk '/File/ {print $2}')
+              curl -X POST https://rubygems.org/api/v1/gems -H "Authorization:${RUBY_GEMS_API_TOKEN}" -H "Content-Type: application/gem" --data-binary "@${GEM_VERSION}"
+            fi
